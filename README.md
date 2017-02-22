@@ -20,10 +20,15 @@ Run with "gradle filesystem".
             }
 
             // Install binaries from bar into /lib, but exclude static libraries
-            install($.components.foo, '/lib') {
+            install($.components.bar, '/lib') {
                 if (binary in StaticLibraryBinarySpec) {
                     exclude = true
                 }
+            }
+
+            // Install foo into both /bin and /usr/bin
+            install($.components.foo, '/bin') {
+                copyTo '/usr/bin'
             }
         }
     }

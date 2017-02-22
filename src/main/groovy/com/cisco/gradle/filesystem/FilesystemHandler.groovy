@@ -24,11 +24,16 @@ class FilesystemHandler {
         boolean exclude
         BinarySpec binary
         Object destPath
+        List<Object> copyTo = []
 
         EntryDetails(BinarySpec binary, Entry entry) {
             this.exclude = false
             this.binary = binary
             this.destPath = entry.destPath
+        }
+
+        void copyTo(Object path) {
+            copyTo << path
         }
     }
 

@@ -63,17 +63,30 @@ class FilesystemPlugin extends RuleSource {
                 }
 
                 // Create the task to copy the binary
-                binary.tasks.create(binary.tasks.taskName('install'), Copy) { Copy task ->
-                    task.into filesystemHandler.prefix
-                    task.from(getBinaryOutputFile(binary)) {
-                        into details.destPath
-                    }
+                binary.tasks.create(binary.tasks.taskName('install'), Copy) {
+                    configureCopyTask(it, binary, filesystemHandler.prefix, details.destPath)
+                    mainTask.dependsOn it
+                }
 
-                    task.onlyIf { binary.buildable }
-                    task.mustRunAfter binary.buildTask
-                    mainTask.dependsOn task
+                // Create tasks for additional copies (if any)
+                int i = 1
+                details.copyTo.each { Object dest ->
+                    String taskName = binary.tasks.taskName('installCopy', String.valueOf(i++))
+                    binary.tasks.create(taskName, Copy) {
+                        configureCopyTask(it, binary, filesystemHandler.prefix, dest)
+                        mainTask.dependsOn it
+                    }
                 }
             }
         }
+    }
+
+    private void configureCopyTask(Copy task, BinarySpec binary, Object prefix, Object dest) {
+        task.into prefix
+        task.from(getBinaryOutputFile(binary)) {
+            it.into dest
+        }
+        task.onlyIf { binary.buildable }
+        task.mustRunAfter binary.buildTask
     }
 }
