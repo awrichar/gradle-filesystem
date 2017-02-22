@@ -30,5 +30,10 @@ Run with "gradle filesystem".
             install($.components.foo, '/bin') {
                 copyTo '/usr/bin'
             }
+
+            // Install foo into /bin and symlink as '/bin/bar'
+            install($.components.foo, '/bin') {
+                linkAs 'bar'
+            }
         }
     }

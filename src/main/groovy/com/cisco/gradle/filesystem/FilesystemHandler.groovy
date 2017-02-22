@@ -25,6 +25,7 @@ class FilesystemHandler {
         BinarySpec binary
         Object destPath
         List<Object> copyTo = []
+        List<String> symlinkAs = []
 
         EntryDetails(BinarySpec binary, Entry entry) {
             this.exclude = false
@@ -34,6 +35,10 @@ class FilesystemHandler {
 
         void copyTo(Object path) {
             copyTo << path
+        }
+
+        void symlinkAs(String relativePath) {
+            symlinkAs << relativePath
         }
     }
 

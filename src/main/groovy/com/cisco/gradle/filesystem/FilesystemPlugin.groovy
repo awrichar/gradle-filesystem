@@ -12,6 +12,9 @@ import org.gradle.nativeplatform.SharedLibraryBinarySpec
 import org.gradle.nativeplatform.StaticLibraryBinarySpec
 import org.gradle.platform.base.BinarySpec
 
+import java.nio.file.Files
+import java.nio.file.Path
+
 class FilesystemPlugin extends RuleSource {
     @Model
     FilesystemHandler filesystem() {
@@ -63,9 +66,25 @@ class FilesystemPlugin extends RuleSource {
                 }
 
                 // Create the task to copy the binary
-                binary.tasks.create(binary.tasks.taskName('install'), Copy) {
-                    configureCopyTask(it, binary, filesystemHandler.prefix, details.destPath)
-                    mainTask.dependsOn it
+                binary.tasks.create(binary.tasks.taskName('install'), Copy) { Copy copyTask ->
+                    configureCopyTask(copyTask, binary, filesystemHandler.prefix, details.destPath)
+                    mainTask.dependsOn copyTask
+
+                    File outputFile = getBinaryOutputFile(binary)
+                    File basePath = copyTask.project.file(filesystemHandler.prefix)
+                    File destPath = new File(basePath, String.valueOf(details.destPath))
+                    File destFile = new File(destPath, outputFile.name)
+
+                    // Create tasks for symlinks (if any)
+                    int i = 1
+                    details.symlinkAs.each { String path ->
+                        String taskName = binary.tasks.taskName('installLink', String.valueOf(i++))
+                        binary.tasks.create(taskName, Task) {
+                            configureLinkTask(it, binary, destFile, path)
+                            mainTask.dependsOn it
+                            it.dependsOn copyTask
+                        }
+                    }
                 }
 
                 // Create tasks for additional copies (if any)
@@ -85,6 +104,21 @@ class FilesystemPlugin extends RuleSource {
         task.into prefix
         task.from(getBinaryOutputFile(binary)) {
             it.into dest
+        }
+        task.onlyIf { binary.buildable }
+        task.mustRunAfter binary.buildTask
+    }
+
+    private void configureLinkTask(Task task, BinarySpec binary, File target, String path) {
+        Path targetPath = target.toPath()
+        Path linkPath = targetPath.parent.resolve(path)
+
+        task.doLast {
+            if (Files.isSymbolicLink(linkPath)) {
+                Files.delete(linkPath)
+            }
+            Files.createDirectories(linkPath.parent)
+            Files.createSymbolicLink(linkPath, linkPath.parent.relativize(targetPath))
         }
         task.onlyIf { binary.buildable }
         task.mustRunAfter binary.buildTask

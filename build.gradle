@@ -16,7 +16,7 @@ ext {
     if (!project.hasProperty('publishPassword')) publishPassword = null
 }
 
-targetCompatibility = '1.6'
+targetCompatibility = '1.7'
 
 publishing {
     repositories {
