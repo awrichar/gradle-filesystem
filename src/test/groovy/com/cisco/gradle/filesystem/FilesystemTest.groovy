@@ -6,6 +6,7 @@ import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
 
 import static org.gradle.testkit.runner.TaskOutcome.SUCCESS
+import static org.gradle.testkit.runner.TaskOutcome.UP_TO_DATE
 
 class FilesystemTest extends Specification {
     @Rule final TemporaryFolder testProjectDir = new TemporaryFolder()
@@ -45,6 +46,30 @@ class FilesystemTest extends Specification {
         List<String> filenames = new File(folder, subfolder).listFiles()*.name
         Collections.sort(filenames)
         return filenames
+    }
+
+    def "install nothing"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == UP_TO_DATE
+        folderContents(installFolder) == []
     }
 
     def "basic install"() {
@@ -98,6 +123,94 @@ class FilesystemTest extends Specification {
         result.task(":filesystem").outcome == SUCCESS
         folderContents(installFolder) == ['bin']
         folderContents(installFolder, 'bin') == ['foo']
+    }
+
+    def "install with modified path for one binary"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin', {
+                        destPath = '/bin2'
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bin2']
+        folderContents(installFolder, 'bin2') == ['foo']
+    }
+
+    def "install with modified path for each binaries"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin'
+                    eachBinary {
+                        destPath = "/usr/\$destPath"
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['usr']
+        folderContents(installFolder, 'usr') == ['bin']
+        folderContents(installFolder, 'usr/bin') == ['foo']
+    }
+
+    def "install with exclude"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin', {
+                        exclude = true
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == UP_TO_DATE
+        folderContents(installFolder) == []
     }
 
     def "install with copy"() {
