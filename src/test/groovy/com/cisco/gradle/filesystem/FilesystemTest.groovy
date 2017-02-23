@@ -41,7 +41,13 @@ class FilesystemTest extends Specification {
         """
     }
 
-    def "install single executable"() {
+    List<String> folderContents(File folder, String subfolder='') {
+        List<String> filenames = new File(folder, subfolder).listFiles()*.name
+        Collections.sort(filenames)
+        return filenames
+    }
+
+    def "basic install"() {
         given:
         buildFile << """
             $pluginInit
@@ -49,7 +55,7 @@ class FilesystemTest extends Specification {
             model {
                 filesystem {
                     prefix '${installFolder.path}'
-                    install \$.components.foo, "/"
+                    install \$.components.foo, '/'
                 }
             }
         """
@@ -64,7 +70,92 @@ class FilesystemTest extends Specification {
         then:
         result.task(":build").outcome == SUCCESS
         result.task(":filesystem").outcome == SUCCESS
-        installFolder.listFiles()*.name == ['foo']
+        folderContents(installFolder) == ['foo']
+    }
+
+    def "install to subfolder"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin'
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bin']
+        folderContents(installFolder, 'bin') == ['foo']
+    }
+
+    def "install with copy"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin', {
+                        copyTo '/bin2'
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bin', 'bin2']
+        folderContents(installFolder, 'bin') == ['foo']
+        folderContents(installFolder, 'bin2') == ['foo']
+    }
+
+    def "install with symlink"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/', {
+                        symlinkAs 'bar'
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bar', 'foo']
     }
 
     def "null component throws exception"() {
