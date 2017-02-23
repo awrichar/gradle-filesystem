@@ -33,6 +33,12 @@ class FilesystemHandler {
             this.destPath = entry.destPath
         }
 
+        void configure(Closure closure) {
+            closure.delegate = this
+            closure.resolveStrategy = Closure.DELEGATE_FIRST
+            closure.call(this)
+        }
+
         void copyTo(Object path) {
             copyTo << path
         }

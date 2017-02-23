@@ -29,7 +29,7 @@ class FilesystemPlugin extends RuleSource {
         }
     }
 
-    private File getBinaryOutputFile(BinarySpec binary) throws IllegalArgumentException {
+    static private File getBinaryOutputFile(BinarySpec binary) throws IllegalArgumentException {
         if (binary in SharedLibraryBinarySpec) {
             return binary.sharedLibraryFile
         } else if (binary in StaticLibraryBinarySpec) {
@@ -43,23 +43,17 @@ class FilesystemPlugin extends RuleSource {
         throw new IllegalArgumentException("Unsupported binary type: ${binary.class.name}")
     }
 
-    private Object callWithContext(Closure closure, Object context) {
-        closure.delegate = context
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        return closure.call(context)
-    }
-
-    private void addFilesystemTasks(Task mainTask, FilesystemHandler filesystemHandler) {
+    static private void addFilesystemTasks(Task mainTask, FilesystemHandler filesystemHandler) {
         // Loop through all binaries for all components added to the filesystem
         filesystemHandler.entries.each { FilesystemHandler.Entry item ->
             item.component.binaries.each { BinarySpec binary ->
                 // Run the filters (if any)
                 FilesystemHandler.EntryDetails details = new FilesystemHandler.EntryDetails(binary, item)
                 filesystemHandler.entryFilters.each {
-                    callWithContext(it, details)
+                    details.configure(it)
                 }
                 if (item.filter) {
-                    callWithContext(item.filter, details)
+                    details.configure(item.filter)
                 }
                 if (details.exclude) {
                     return
@@ -100,7 +94,7 @@ class FilesystemPlugin extends RuleSource {
         }
     }
 
-    private void configureCopyTask(Copy task, BinarySpec binary, Object prefix, Object dest) {
+    static private void configureCopyTask(Copy task, BinarySpec binary, Object prefix, Object dest) {
         task.into prefix
         task.from(getBinaryOutputFile(binary)) {
             it.into dest
@@ -109,7 +103,7 @@ class FilesystemPlugin extends RuleSource {
         task.mustRunAfter binary.buildTask
     }
 
-    private void configureLinkTask(Task task, BinarySpec binary, File target, String path) {
+    static private void configureLinkTask(Task task, BinarySpec binary, File target, String path) {
         Path targetPath = target.toPath()
         Path linkPath = targetPath.parent.resolve(path)
 
