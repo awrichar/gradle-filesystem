@@ -1,13 +1,27 @@
 apply plugin: 'groovy'
+apply plugin: 'java-gradle-plugin'
 apply plugin: 'maven-publish'
 
 def publishName = 'filesystem'
 group = 'com.cisco.gradle'
 version = '1.0'
 
+repositories {
+    mavenCentral()
+}
+
 dependencies {
     compile localGroovy()
     compile gradleApi()
+    testCompile gradleTestKit()
+    testCompile "org.spockframework:spock-core:1.0-groovy-2.4"
+    testCompile "org.codehaus.groovy:groovy-all:2.4.7"
+}
+
+test {
+    testLogging {
+        exceptionFormat = 'full'
+    }
 }
 
 ext {
