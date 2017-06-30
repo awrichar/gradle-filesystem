@@ -37,3 +37,9 @@ Run with "gradle filesystem".
             }
         }
     }
+
+## License
+
+Author: Andrew Richardson (andreric@cisco.com)
+
+Created for Cisco and released under the terms of the Apache 2.0 License (contribution #148021642).
