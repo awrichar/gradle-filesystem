@@ -1,10 +1,15 @@
 apply plugin: 'groovy'
 apply plugin: 'java-gradle-plugin'
-apply plugin: 'maven-publish'
+apply from: 'localPublish.gradle'
 
-def publishName = 'filesystem'
 group = 'com.cisco.gradle'
 version = '1.1'
+
+ext {
+    publishName = 'filesystem'
+}
+
+targetCompatibility = '1.7'
 
 repositories {
     mavenCentral()
@@ -24,35 +29,3 @@ test {
     }
 }
 
-ext {
-    if (!project.hasProperty('publishUrl')) publishUrl = null
-    if (!project.hasProperty('publishUser')) publishUser = null
-    if (!project.hasProperty('publishPassword')) publishPassword = null
-}
-
-targetCompatibility = '1.7'
-
-publishing {
-    repositories {
-        maven {
-            url = publishUrl
-            credentials {
-                username publishUser
-                password publishPassword
-            }
-        }
-    }
-
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifactId = publishName
-        }
-    }
-}
-
-gradle.taskGraph.whenReady { graph ->
-    if (graph.hasTask(':publish') && !publishUrl) {
-        throw new GradleException('To publish, you must pass in -PpublishUrl (and optionally publishUser/publishPassword).')
-    }
-}
