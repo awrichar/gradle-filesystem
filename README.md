@@ -33,7 +33,7 @@ Run with "gradle filesystem".
 
             // Install foo into /bin and symlink as '/bin/bar'
             install($.components.foo, '/bin') {
-                linkAs 'bar'
+                symlinkAs 'bar'
             }
         }
     }
