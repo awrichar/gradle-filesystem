@@ -1,5 +1,6 @@
 apply plugin: 'groovy'
 apply plugin: 'java-gradle-plugin'
+apply plugin: 'com.gradle.plugin-publish'
 apply from: 'localPublish.gradle'
 
 group = 'com.cisco.gradle'
@@ -11,6 +12,18 @@ ext {
 }
 
 targetCompatibility = '1.7'
+
+buildscript {
+    repositories {
+        maven {
+            url 'https://plugins.gradle.org/m2'
+        }
+    }
+
+    dependencies {
+        classpath 'com.gradle.publish:plugin-publish-plugin:0.9.7'
+    }
+}
 
 repositories {
     mavenCentral()
@@ -30,3 +43,16 @@ test {
     }
 }
 
+pluginBundle {
+    website = publishHomepage
+    vcsUrl = publishHomepage
+    description = 'A Gradle plugin for installing binaries into a filesystem.'
+    tags = ['native', 'filesystem', 'install', 'copy']
+
+    plugins {
+        externalBuildPlugin {
+            id = 'com.cisco.filesystem'
+            displayName = 'Gradle filesystem plugin'
+        }
+    }
+}
