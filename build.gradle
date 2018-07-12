@@ -4,7 +4,7 @@ apply plugin: 'com.gradle.plugin-publish'
 apply from: 'localPublish.gradle'
 
 group = 'com.cisco.gradle'
-version = '1.1'
+version = '1.2'
 
 ext {
     publishName = 'filesystem'
@@ -46,7 +46,7 @@ test {
 pluginBundle {
     website = publishHomepage
     vcsUrl = publishHomepage
-    description = 'A Gradle plugin for installing binaries into a filesystem.'
+    description = 'A Gradle plugin for installing binaries into a filesystem. The "make install" of Gradle builds.'
     tags = ['native', 'filesystem', 'install', 'copy']
 
     plugins {
