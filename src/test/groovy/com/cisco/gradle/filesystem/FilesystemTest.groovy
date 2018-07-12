@@ -40,6 +40,7 @@ class FilesystemTest extends Specification {
                 return 0;
             }
         """
+        testProjectDir.newFile('libfoo.so')
     }
 
     List<String> folderContents(File folder, String subfolder='') {
@@ -294,5 +295,48 @@ class FilesystemTest extends Specification {
 
         then:
         Exception e = thrown()
+    }
+
+    def "prebuilt install"() {
+        given:
+        buildFile << """
+            plugins {
+                id 'cpp'
+                id 'com.cisco.filesystem'
+            }
+
+            model {
+                repositories {
+                    libs(PrebuiltLibraries) {
+                        foo {
+                            binaries.withType(SharedLibraryBinary) {
+                                sharedLibraryFile = file('libfoo.so')
+                            }
+                        }
+                    }
+                }
+
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install(\$.repositories.findByName('libs').resolveLibrary('foo'), '/folder1') {
+                        copyTo '/folder2'
+                        symlinkAs 'libfoo.so.2'
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('filesystem')
+                .build()
+
+        then:
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['folder1', 'folder2']
+        folderContents(installFolder, 'folder1') == ['libfoo.so', 'libfoo.so.2']
+        folderContents(installFolder, 'folder2') == ['libfoo.so']
     }
 }
