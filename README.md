@@ -1,6 +1,6 @@
 # gradle-filesystem
 
-Plugin for installing binaries on the filesystem.
+A Gradle plugin for installing binaries into a filesystem. The "make install" of Gradle builds.
 
 Run with "gradle filesystem".
 
@@ -42,7 +42,7 @@ Run with "gradle filesystem".
             }
 
             // Install a PrebuiltLibrary foo into /bin
-	    install $.repositories['libs'].resolveLibrary('foo'), '/bin'
+            install $.repositories['libs'].resolveLibrary('foo'), '/bin'
         }
     }
 
