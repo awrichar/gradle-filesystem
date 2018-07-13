@@ -318,7 +318,7 @@ class FilesystemTest extends Specification {
 
                 filesystem {
                     prefix '${installFolder.path}'
-                    install(\$.repositories.findByName('libs').resolveLibrary('foo'), '/folder1') {
+                    install(\$.repositories['libs'].resolveLibrary('foo'), '/folder1') {
                         copyTo '/folder2'
                         symlinkAs 'libfoo.so.2'
                     }

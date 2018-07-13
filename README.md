@@ -35,6 +35,14 @@ Run with "gradle filesystem".
             install($.components.foo, '/bin') {
                 symlinkAs 'bar'
             }
+
+            // Install foo into /bin, but rename it to 'bar' instead
+            install($.components.foo, '/bin') {
+                rename { 'bar' }
+            }
+
+            // Install a PrebuiltLibrary foo into /bin
+	    install $.repositories['libs'].resolveLibrary('foo'), '/bin'
         }
     }
 
