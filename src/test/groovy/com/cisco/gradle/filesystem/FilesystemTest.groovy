@@ -339,4 +339,32 @@ class FilesystemTest extends Specification {
         folderContents(installFolder, 'folder1') == ['libfoo.so', 'libfoo.so.2']
         folderContents(installFolder, 'folder2') == ['libfoo.so']
     }
+
+    def "install with rename"() {
+        given:
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/', {
+                        rename { 'bar' }
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bar']
+    }
 }

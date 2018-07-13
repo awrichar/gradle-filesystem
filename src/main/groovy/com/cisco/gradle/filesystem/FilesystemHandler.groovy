@@ -32,6 +32,7 @@ class FilesystemHandler {
         boolean exclude
         Object binary
         Object destPath
+        Closure renameAction
         List<Object> copyTo = []
         List<String> symlinkAs = []
 
@@ -51,6 +52,10 @@ class FilesystemHandler {
             closure.delegate = this
             closure.resolveStrategy = Closure.DELEGATE_FIRST
             closure.call(this)
+        }
+
+        void rename(Closure closure) {
+            renameAction = closure
         }
 
         void copyTo(Object path) {
