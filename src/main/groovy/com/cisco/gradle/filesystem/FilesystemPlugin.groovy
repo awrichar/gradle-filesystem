@@ -76,15 +76,16 @@ class FilesystemPlugin extends RuleSource {
                     return
                 }
 
+                File basePath = mainTask.project.file(filesystemHandler.prefix)
+
                 // Create the task to copy the binary
                 TaskContainer tasks = mainTask.project.tasks
                 String installTask = taskName("installFile", item.component, binary)
                 tasks.create(installTask, Copy) { Copy copyTask ->
-                    configureCopyTask(copyTask, binary, filesystemHandler.prefix, details.destPath, details.renameAction)
+                    File destPath = new File(basePath, String.valueOf(details.destPath))
+                    configureCopyTask(copyTask, binary, destPath, details.renameAction)
                     mainTask.dependsOn copyTask
 
-                    File basePath = copyTask.project.file(filesystemHandler.prefix)
-                    File destPath = new File(basePath, String.valueOf(details.destPath))
                     File destFile
                     if (details.renameAction) {
                         destFile = new File(destPath, details.renameAction(outputFile.name))
@@ -107,9 +108,10 @@ class FilesystemPlugin extends RuleSource {
                 // Create tasks for additional copies (if any)
                 int i = 1
                 details.copyTo.each { Object dest ->
+                    File destPath = new File(basePath, String.valueOf(dest))
                     String copyTask = taskName('installCopy', item.component, binary, String.valueOf(i++))
                     tasks.create(copyTask, Copy) {
-                        configureCopyTask(it, binary, filesystemHandler.prefix, dest, details.renameAction)
+                        configureCopyTask(it, binary, destPath, details.renameAction)
                         mainTask.dependsOn it
                     }
                 }
@@ -117,11 +119,9 @@ class FilesystemPlugin extends RuleSource {
         }
     }
 
-    static private void configureCopyTask(Copy task, Object binary, Object prefix, Object dest, Closure renameAction=null) {
-        task.into prefix
-        task.from(getBinaryOutputFile(binary)) {
-            it.into dest
-        }
+    static private void configureCopyTask(Copy task, Object binary, File dest, Closure renameAction=null) {
+        task.from(getBinaryOutputFile(binary))
+        task.into dest
         if (renameAction) {
             task.rename(renameAction)
         }
