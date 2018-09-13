@@ -367,4 +367,48 @@ class FilesystemTest extends Specification {
         result.task(":filesystem").outcome == SUCCESS
         folderContents(installFolder) == ['bar']
     }
+
+    def "process installed filenames"() {
+        given:
+        File listFile = testProjectDir.newFile()
+
+        buildFile << """
+            $pluginInit
+
+            model {
+                filesystem {
+                    prefix '${installFolder.path}'
+                    install \$.components.foo, '/bin', {
+                        rename { 'bar' }
+                        copyTo '/bin2'
+                        symlinkAs 'baz'
+                    }
+                    eachInstalledFile {
+                        if (isSymlink) {
+                            file('$listFile').text += installedFile.path + "-LINK "
+                        } else {
+                            file('$listFile').text += installedFile.path + " "
+                        }
+                    }
+                }
+            }
+        """
+
+        when:
+        def result = GradleRunner.create()
+                .withPluginClasspath()
+                .withProjectDir(testProjectDir.root)
+                .withArguments('build', 'filesystem')
+                .build()
+
+        then:
+        result.task(":build").outcome == SUCCESS
+        result.task(":filesystem").outcome == SUCCESS
+        folderContents(installFolder) == ['bin', 'bin2']
+        folderContents(installFolder, 'bin') == ['bar', 'baz']
+        folderContents(installFolder, 'bin2') == ['bar']
+        listFile.text == ("${installFolder.path}/bin/bar " +
+                          "${installFolder.path}/bin/baz-LINK " +
+                          "${installFolder.path}/bin2/bar ")
+    }
 }

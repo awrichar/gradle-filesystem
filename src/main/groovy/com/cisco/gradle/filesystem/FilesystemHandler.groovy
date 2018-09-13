@@ -1,5 +1,6 @@
 package com.cisco.gradle.filesystem
 
+import org.gradle.api.Task
 import org.gradle.nativeplatform.NativeBinary
 import org.gradle.nativeplatform.PrebuiltLibrary
 import org.gradle.platform.base.BinarySpec
@@ -9,6 +10,7 @@ class FilesystemHandler {
     Object prefix = '/'
     List<Entry> entries = []
     List<Closure> entryFilters = []
+    List<Closure> installedFileHandlers = []
 
     static class Entry {
         Object component
@@ -67,6 +69,12 @@ class FilesystemHandler {
         }
     }
 
+    static class InstalledFileDetails {
+        File installedFile
+        Task installTask
+        boolean isSymlink
+    }
+
     void prefix(Object prefix) {
         this.prefix = prefix
     }
@@ -81,5 +89,9 @@ class FilesystemHandler {
 
     void eachBinary(Closure closure) {
         entryFilters << closure
+    }
+
+    void eachInstalledFile(Closure closure) {
+        installedFileHandlers << closure
     }
 }

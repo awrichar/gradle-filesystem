@@ -83,9 +83,6 @@ class FilesystemPlugin extends RuleSource {
                 String installTask = taskName("installFile", item.component, binary)
                 tasks.create(installTask, Copy) { Copy copyTask ->
                     File destPath = new File(basePath, String.valueOf(details.destPath))
-                    configureCopyTask(copyTask, binary, destPath, details.renameAction)
-                    mainTask.dependsOn copyTask
-
                     File destFile
                     if (details.renameAction) {
                         destFile = new File(destPath, details.renameAction(outputFile.name))
@@ -93,14 +90,21 @@ class FilesystemPlugin extends RuleSource {
                         destFile = new File(destPath, outputFile.name)
                     }
 
+                    configureCopyTask(copyTask, binary, destPath, details.renameAction)
+                    mainTask.dependsOn copyTask
+                    invokeInstalledFileHandlers(filesystemHandler.installedFileHandlers, destFile, copyTask, false)
+
                     // Create tasks for symlinks (if any)
                     int i = 1
                     details.symlinkAs.each { String path ->
+                        Path targetPath = destFile.toPath()
+                        Path linkPath = destFile.toPath().parent.resolve(path)
                         String symlinkTask = taskName('installLink', item.component, binary, String.valueOf(i++))
                         tasks.create(symlinkTask, Task) {
-                            configureLinkTask(it, binary, destFile, path)
+                            configureLinkTask(it, binary, targetPath, linkPath)
                             mainTask.dependsOn it
                             it.dependsOn copyTask
+                            invokeInstalledFileHandlers(filesystemHandler.installedFileHandlers, linkPath.toFile(), it, true)
                         }
                     }
                 }
@@ -109,10 +113,18 @@ class FilesystemPlugin extends RuleSource {
                 int i = 1
                 details.copyTo.each { Object dest ->
                     File destPath = new File(basePath, String.valueOf(dest))
+                    File destFile
+                    if (details.renameAction) {
+                        destFile = new File(destPath, details.renameAction(outputFile.name))
+                    } else {
+                        destFile = new File(destPath, outputFile.name)
+                    }
+
                     String copyTask = taskName('installCopy', item.component, binary, String.valueOf(i++))
                     tasks.create(copyTask, Copy) {
                         configureCopyTask(it, binary, destPath, details.renameAction)
                         mainTask.dependsOn it
+                        invokeInstalledFileHandlers(filesystemHandler.installedFileHandlers, destFile, it, false)
                     }
                 }
             }
@@ -131,10 +143,7 @@ class FilesystemPlugin extends RuleSource {
         }
     }
 
-    static private void configureLinkTask(Task task, Object binary, File target, String path) {
-        Path targetPath = target.toPath()
-        Path linkPath = targetPath.parent.resolve(path)
-
+    static private void configureLinkTask(Task task, Object binary, Path targetPath, Path linkPath) {
         task.doLast {
             if (Files.isSymbolicLink(linkPath)) {
                 Files.delete(linkPath)
@@ -145,6 +154,19 @@ class FilesystemPlugin extends RuleSource {
         if (binary in Buildable) {
             task.onlyIf { binary.buildable }
             task.mustRunAfter binary.buildTask
+        }
+    }
+
+    static private void invokeInstalledFileHandlers(List<Closure> handlers, File dest, Task task, boolean isSymlink) {
+        FilesystemHandler.InstalledFileDetails details = new FilesystemHandler.InstalledFileDetails()
+        details.installedFile = dest
+        details.installTask = task
+        details.isSymlink = isSymlink
+
+        handlers.each { Closure closure ->
+            closure.delegate = details
+            closure.resolveStrategy = Closure.DELEGATE_FIRST
+            closure.call(details)
         }
     }
 }
